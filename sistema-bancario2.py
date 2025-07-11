@@ -1,6 +1,33 @@
 import textwrap
 
 
+def validar_cpf(cpf: str) -> bool:
+    # Remove caracteres não numéricos
+    cpf = ''.join(filter(str.isdigit, cpf))
+
+    # Verifica se tem 11 dígitos
+    if len(cpf) != 11:
+        return False
+
+    # Verifica se todos os dígitos são iguais (CPF inválido)
+    if cpf == cpf[0] * 11:
+        return False
+
+    # Validação do primeiro dígito verificador
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    digito1 = ((soma * 10) % 11) % 10
+    if digito1 != int(cpf[9]):
+        return False
+
+    # Validação do segundo dígito verificador
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    digito2 = ((soma * 10) % 11) % 10
+    if digito2 != int(cpf[10]):
+        return False
+
+    return True
+
+
 def menu():
     menu = """\n
     ================ MENU ================
@@ -32,22 +59,22 @@ def sacar(*, saldo, valor, extrato, limite, numero_saques, limite_saques):
     excedeu_saques = numero_saques >= limite_saques
 
     if excedeu_saldo:
-        print("\n Você não tem saldo suficiente. ")
+        print("\nVocê não tem saldo suficiente.")
 
     elif excedeu_limite:
-        print("\n O valor do saque excede o limite.")
+        print("\nO valor do saque excede o limite.")
 
     elif excedeu_saques:
-        print("\n Número máximo de saques excedido.")
+        print("\nNúmero máximo de saques excedido.")
 
     elif valor > 0:
         saldo -= valor
         extrato += f"Saque:\t\tR$ {valor:.2f}\n"
         numero_saques += 1
-        print("\n Saque realizado com sucesso! ")
+        print("\nSaque realizado com sucesso!")
 
     else:
-        print("\n Operação falhou! O valor informado é inválido.")
+        print("\nOperação falhou! O valor informado é inválido.")
 
     return saldo, extrato
 
@@ -60,11 +87,16 @@ def exibir_extrato(saldo, /, *, extrato):
 
 
 def criar_usuario(usuarios):
-    cpf = input("Informe o CPF (somente número): ")
+    cpf = input("Informe o CPF (somente números): ")
+
+    if not validar_cpf(cpf):
+        print("\nCPF inválido! Tente novamente.")
+        return
+
     usuario = filtrar_usuario(cpf, usuarios)
 
     if usuario:
-        print("\n Já existe usuário com esse CPF!")
+        print("\nJá existe usuário com esse CPF!")
         return
 
     nome = input("Informe o nome completo: ")
@@ -83,18 +115,23 @@ def filtrar_usuario(cpf, usuarios):
 
 def criar_conta(agencia, numero_conta, usuarios):
     cpf = input("Informe o CPF do usuário: ")
+
+    if not validar_cpf(cpf):
+        print("\nCPF inválido! Criação de conta cancelada.")
+        return
+
     usuario = filtrar_usuario(cpf, usuarios)
 
     if usuario:
         print("\n=== Conta criada com sucesso! ===")
         return {"agencia": agencia, "numero_conta": numero_conta, "usuario": usuario}
 
-    print("\n Usuário não encontrado, fluxo de criação de conta encerrado!")
+    print("\nUsuário não encontrado, fluxo de criação de conta encerrado!")
 
 
 def listar_contas(contas):
     for conta in contas:
-        linha = f"""\
+        linha = f"""\ 
             Agência:\t{conta['agencia']}
             C/C:\t\t{conta['numero_conta']}
             Titular:\t{conta['usuario']['nome']}
@@ -119,12 +156,10 @@ def main():
 
         if opcao == "d":
             valor = float(input("Informe o valor do depósito: "))
-
             saldo, extrato = depositar(saldo, valor, extrato)
 
         elif opcao == "s":
             valor = float(input("Informe o valor do saque: "))
-
             saldo, extrato = sacar(
                 saldo=saldo,
                 valor=valor,
@@ -143,7 +178,6 @@ def main():
         elif opcao == "nc":
             numero_conta = len(contas) + 1
             conta = criar_conta(AGENCIA, numero_conta, usuarios)
-
             if conta:
                 contas.append(conta)
 
